@@ -1,0 +1,175 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.util.LinkedList;
+
+public class Main extends JFrame implements ActionListener, KeyListener {
+    private static final int GRID_SIZE = 20;
+    private static final int TILE_SIZE = 20;
+    private static final int GAME_SPEED = 150; // milliseconds
+
+    private enum Direction {
+        UP, DOWN, LEFT, RIGHT
+    }
+
+    private Direction currentDirection = Direction.RIGHT;
+    private Direction nextDirection = Direction.RIGHT;
+
+    private LinkedList<Point> snake;
+    private Point food;
+
+    public  Main() {
+        setTitle("Snake Game");
+        setSize(GRID_SIZE * TILE_SIZE, GRID_SIZE * TILE_SIZE);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        snake = new LinkedList<>();
+        snake.add(new Point(5, 5));
+        spawnFood();
+
+        Timer timer = new Timer(GAME_SPEED, this);
+        timer.start();
+
+        addKeyListener(this);
+        setFocusable(true);
+    }
+
+    private void spawnFood() {
+        int x = (int) (Math.random() * GRID_SIZE);
+        int y = (int) (Math.random() * GRID_SIZE);
+        food = new Point(x, y);
+
+        // Ensure the food does not spawn on the snake
+        while (snake.contains(food)) {
+            x = (int) (Math.random() * GRID_SIZE);
+            y = (int) (Math.random() * GRID_SIZE);
+            food.setLocation(x, y);
+        }
+    }
+
+    private void move() {
+        Point head = snake.getFirst();
+        Point newHead;
+
+        switch (nextDirection) {
+            case UP:
+                newHead = new Point(head.x, (head.y - 1 + GRID_SIZE) % GRID_SIZE);
+                break;
+            case DOWN:
+                newHead = new Point(head.x, (head.y + 1) % GRID_SIZE);
+                break;
+            case LEFT:
+                newHead = new Point((head.x - 1 + GRID_SIZE) % GRID_SIZE, head.y);
+                break;
+            case RIGHT:
+                newHead = new Point((head.x + 1) % GRID_SIZE, head.y);
+                break;
+            default:
+                newHead = head;
+        }
+
+        if (newHead.equals(food)) {
+            snake.addFirst(food);
+            spawnFood();
+        } else {
+            snake.addFirst(newHead);
+            snake.removeLast();
+        }
+
+        currentDirection = nextDirection;
+
+        if (checkCollision()) {
+            gameOver();
+        }
+
+        repaint();
+    }
+
+    private boolean checkCollision() {
+        Point head = snake.getFirst();
+
+        // Check collision with walls
+        if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+            return true;
+        }
+
+        // Check collision with itself
+        for (int i = 1; i < snake.size(); i++) {
+            if (head.equals(snake.get(i))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void gameOver() {
+        JOptionPane.showMessageDialog(this, "Game Over!", "Game Over", JOptionPane.INFORMATION_MESSAGE);
+        System.exit(0);
+    }
+
+    @Override
+    public void paint(Graphics g) {
+        super.paint(g);
+
+        // Draw the snake
+        g.setColor(Color.GREEN);
+        for (Point point : snake) {
+            g.fillRect(point.x * TILE_SIZE, point.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
+
+        // Draw the food
+        g.setColor(Color.RED);
+        g.fillRect(food.x * TILE_SIZE, food.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        move();
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_UP:
+                if (currentDirection != Direction.DOWN) {
+                    nextDirection = Direction.UP;
+                }
+                break;
+            case KeyEvent.VK_DOWN:
+                if (currentDirection != Direction.UP) {
+                    nextDirection = Direction.DOWN;
+                }
+                break;
+            case KeyEvent.VK_LEFT:
+                if (currentDirection != Direction.RIGHT) {
+                    nextDirection = Direction.LEFT;
+                }
+                break;
+            case KeyEvent.VK_RIGHT:
+                if (currentDirection != Direction.LEFT) {
+                    nextDirection = Direction.RIGHT;
+                }
+                break;
+        }
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            Main snakeGame = new Main();
+            snakeGame.setVisible(true);
+        });
+    }
+}
